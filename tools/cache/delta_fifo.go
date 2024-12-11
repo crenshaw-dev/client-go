@@ -55,6 +55,8 @@ type DeltaFIFOOptions struct {
 	// If set, will be called for objects before enqueueing them. Please
 	// see the comment on TransformFunc for details.
 	Transformer TransformFunc
+
+	LogQueueLength bool
 }
 
 // DeltaFIFO is like FIFO, but differs in two ways.  One is that the
@@ -255,6 +257,15 @@ func NewDeltaFIFOWithOptions(opts DeltaFIFOOptions) *DeltaFIFO {
 		transformer:           opts.Transformer,
 	}
 	f.cond.L = &f.lock
+
+	if opts.LogQueueLength {
+		go func() {
+			for range time.Tick(time.Second * 5) {
+				klog.Infof("DeltaFIFO items length: %d, queue length: %d", len(f.items), len(f.queue))
+			}
+		}()
+	}
+
 	return f
 }
 

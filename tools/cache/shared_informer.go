@@ -276,6 +276,7 @@ func NewSharedIndexInformerWithOptions(lw ListerWatcher, exampleObject runtime.O
 		objectDescription:               options.ObjectDescription,
 		resyncCheckPeriod:               options.ResyncPeriod,
 		defaultEventHandlerResyncPeriod: options.ResyncPeriod,
+		logDeltaFIFOQueueLength:         options.LogDeltaFIFOQueueLength,
 		clock:                           realClock,
 		cacheMutationDetector:           NewCacheMutationDetector(fmt.Sprintf("%T", exampleObject)),
 	}
@@ -293,6 +294,8 @@ type SharedIndexInformerOptions struct {
 	// ObjectDescription is the sharedIndexInformer's object description. This is passed through to the
 	// underlying Reflector's type description.
 	ObjectDescription string
+
+	LogDeltaFIFOQueueLength bool
 }
 
 // InformerSynced is a function that can be used to determine if an informer has synced.  This is useful for determining if caches have synced.
@@ -392,6 +395,8 @@ type sharedIndexInformer struct {
 	watchErrorHandler WatchErrorHandler
 
 	transform TransformFunc
+
+	logDeltaFIFOQueueLength bool
 }
 
 // dummyController hides the fact that a SharedInformer is different from a dedicated one
@@ -472,6 +477,7 @@ func (s *sharedIndexInformer) Run(stopCh <-chan struct{}) {
 			KnownObjects:          s.indexer,
 			EmitDeltaTypeReplaced: true,
 			Transformer:           s.transform,
+			LogQueueLength:        s.logDeltaFIFOQueueLength,
 		})
 
 		cfg := &Config{
